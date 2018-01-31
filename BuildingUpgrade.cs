@@ -60,7 +60,7 @@ public class BuildingUpgrade : MonoBehaviour {
         //Clear those icons
         foreach (GameObject p in productionAndConsumption)
         {
-            p.GetComponent<RawImage>().texture = null;
+            p.GetComponent<RawImage>().texture = (Texture2D)Resources.Load("Icons/none");
             p.transform.FindChild("Value").GetComponent<Text>().text = null;
         }
 
@@ -115,84 +115,7 @@ public class BuildingUpgrade : MonoBehaviour {
     /// <param name="buildings">Buildings array</param>
     private void DisplayProductionConsumption(int building, Buildings buildings)
     {
-        //Icons textures
-        Texture2D[] icons = new Texture2D[] 
-        {
-            (Texture2D)Resources.Load("Icons/electricity"),
-            (Texture2D)Resources.Load("Icons/labour"),
-            (Texture2D)Resources.Load("Icons/vehicles"),
-            (Texture2D)Resources.Load("Icons/money"),
-            (Texture2D)Resources.Load("Icons/action"),
-            (Texture2D)Resources.Load("Icons/charity")
-        };
-
-        //Get slots
-        GameObject[] productionSlots = GameObject.FindGameObjectsWithTag("ProductionSel" + building);
-        GameObject[] consumptionSlots = GameObject.FindGameObjectsWithTag("ConsumptionSel" + building);
-
-        //Get production&consumption rate
-        ProductionConsumptionRate pcrate = BuildingsExtensions.GetPCRate(buildings);
-        int[,] pcrate_array = new int[4, 2]
-        {
-            { pcrate.p_electricity, pcrate.c_electricity },
-            { pcrate.p_labour, pcrate.c_labour },
-            { pcrate.p_vehicles, pcrate.c_vehicles },
-            { pcrate.p_money, pcrate.c_money }
-        };
-
-        //Index of last empty slot for production&consumption
-        int productionIdx = 0;
-        int consumptionIdx = 0;
-
-        for (int commodity = 0; commodity < 4; commodity++) //Cycle going through each commodity
-        {
-            if (commodity != 3) //Special rule for money
-            {
-                //Draw commodities separately
-                //Production
-                for (int quantity = 0; quantity < pcrate_array[commodity, 0]; quantity++)
-                {
-                    productionSlots[productionIdx].GetComponent<RawImage>().texture = icons[commodity];
-                    productionIdx = productionIdx > 1 ? 2 : productionIdx + 1;
-                }
-
-                //Consumption
-                for (int quantity = 0; quantity < pcrate_array[commodity, 1]; quantity++)
-                {
-                    consumptionSlots[consumptionIdx].GetComponent<RawImage>().texture = icons[commodity];
-                    consumptionIdx = consumptionIdx > 1 ? 2 : consumptionIdx + 1;
-                }
-            }
-            //Draw money
-            else
-            {
-                //Production
-                if (pcrate_array[commodity, 0] > 0)
-                {
-                    productionSlots[productionIdx].GetComponent<RawImage>().texture = icons[commodity];
-                    productionSlots[productionIdx].transform.FindChild("Value").GetComponent<Text>().text = pcrate_array[commodity, 0].ToString();
-                    productionIdx = productionIdx > 1 ? 2 : productionIdx + 1;
-                }
-
-                //Consumption
-                if (pcrate_array[commodity, 1] > 0)
-                {
-                    consumptionSlots[consumptionIdx].GetComponent<RawImage>().texture = icons[commodity];
-                    consumptionSlots[consumptionIdx].transform.FindChild("Value").GetComponent<Text>().text = pcrate_array[commodity, 1].ToString();
-                    consumptionIdx = consumptionIdx > 1 ? 2 : consumptionIdx + 1;
-                }
-            }
-        }
-        if (pcrate.action) //Draw bonus action
-        {
-            productionSlots[productionIdx].GetComponent<RawImage>().texture = icons[4];
-            productionIdx = productionIdx > 1 ? 2 : productionIdx + 1;
-        }
-        if (pcrate.charity) //Draw bonus charity
-        {
-            productionSlots[productionIdx].GetComponent<RawImage>().texture = icons[5];
-            productionIdx = productionIdx > 1 ? 2 : productionIdx + 1;
-        }
+        BuildingsExtensions.DrawPC("ProductionSel" + building, "ConsumptionSel" + building, buildings);
     }
 
     private void Update()

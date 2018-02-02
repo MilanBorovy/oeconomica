@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Oeconomica.Game.BuildingsNS;
 using Oeconomica.Game.CommoditiesNS;
+using Oeconomica.Game.Effects;
 
 namespace Oeconomica.Game.HUD
 {
@@ -30,6 +31,8 @@ namespace Oeconomica.Game.HUD
             (GameObject.Find("BuildingUpgrade").GetComponent("BuildingUpgrade") as BuildingUpgrade).Hide();
             buildingLogic = building.GetComponent("Building") as Building; //Get logic
 
+            GameObject.Find("Camera").GetComponent<OutlineEffect>().SetColor(buildingLogic.Owner.Color);
+            buildingLogic.HighlightBuilding(true);
             gameObject.transform.localScale = new Vector3(1, 1, 1); //Show window
             gameObject.transform.parent.position = new Vector3(building.transform.position.x, 50, building.transform.position.z - 50); //Move panel to building
             gameObject.transform.Find("Name").GetComponent<Text>().text =

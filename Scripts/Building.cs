@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using Oeconomica.Game.HUD;
+using Oeconomica.Game;
 
 namespace Oeconomica.Game.BuildingsNS
 {
@@ -10,12 +11,16 @@ namespace Oeconomica.Game.BuildingsNS
     {
 
         public Buildings ActualBuilding { get; private set; } //Actual building type
+        public Player Owner { get; private set; }
         private Object BuildingInstance; //In-game representation of building
 
         void Start()
         {
             ActualBuilding = Buildings.EMPTY;
             BuildingInstance = Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform);
+            string parentName = gameObject.transform.parent.name;
+            int x = int.Parse(parentName[parentName.Length - 1].ToString());
+            Owner = GameLogic.players[x];
         }
 
         void OnMouseDown()
@@ -25,6 +30,11 @@ namespace Oeconomica.Game.BuildingsNS
                 !RectTransformUtility.RectangleContainsScreenPoint(GameObject.Find("Commodities").GetComponent<RectTransform>(), Input.mousePosition, Camera.main) &&
                 !RectTransformUtility.RectangleContainsScreenPoint(GameObject.Find("Costs").GetComponent<RectTransform>(), Input.mousePosition, Camera.main))
                 (GameObject.Find("BuildingOverview").GetComponent("BuildingControl") as BuildingControl).Show(gameObject);
+        }
+
+        public void HighlightBuilding(bool highlight)
+        {
+            (BuildingInstance as GameObject).layer = highlight ? LayerMask.NameToLayer("Outline") : LayerMask.NameToLayer("Default");
         }
 
         /// <summary>

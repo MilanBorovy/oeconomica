@@ -5,15 +5,15 @@ namespace Oeconomica.Game.Effects
 {
     public class OutlineEffect : MonoBehaviour
     {
-        Camera AttachedCamera;
+        private Camera AttachedCamera;
         public Shader Post_Outline;
         public Shader DrawSimple;
-        Camera TempCam;
-        Material Post_Mat;
+        private Camera TempCam;
+        private static Material Post_Mat;
         // public RenderTexture TempRT;
 
 
-        void Start()
+        private void Start()
         {
             AttachedCamera = GetComponent<Camera>();
             TempCam = new GameObject().AddComponent<Camera>();
@@ -23,6 +23,7 @@ namespace Oeconomica.Game.Effects
 
         void OnRenderImage(RenderTexture source, RenderTexture destination)
         {
+
             //set up a temporary camera
             TempCam.CopyFrom(AttachedCamera);
             TempCam.clearFlags = CameraClearFlags.Color;
@@ -50,9 +51,12 @@ namespace Oeconomica.Game.Effects
             TempRT.Release();
         }
 
-        public void SetColor(Color color)
+        /// <summary>
+        /// Sets color of outline
+        /// </summary>
+        public static void SetColor(Color color)
         {
-            Post_Mat.SetColor("_Color", color);
+            Post_Mat.SetColor("_Color", new Color(Mathf.Floor(color.r), Mathf.Floor(color.g), Mathf.Floor(color.b)));
         }
 
     }

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using Oeconomica.Game.HUD;
 using Oeconomica.Game;
+using UnityEngine.EventSystems;
 
 namespace Oeconomica.Game.BuildingsNS
 {
@@ -12,29 +13,23 @@ namespace Oeconomica.Game.BuildingsNS
 
         public Buildings ActualBuilding { get; private set; } //Actual building type
         public Player Owner { get; private set; }
-        private Object BuildingInstance; //In-game representation of building
+        private GameObject BuildingInstance; //In-game representation of building
 
         void Start()
         {
             ActualBuilding = Buildings.EMPTY;
-            BuildingInstance = Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform);
-            string parentName = gameObject.transform.parent.name;
-            int x = int.Parse(parentName[parentName.Length - 1].ToString());
-            Owner = GameLogic.players[x];
+            BuildingInstance = (GameObject)Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform);
         }
 
         void OnMouseDown()
         {
-            if (!RectTransformUtility.RectangleContainsScreenPoint(GameObject.Find("BuildingOverview").GetComponent<RectTransform>(), Input.mousePosition, Camera.main) &&
-                !RectTransformUtility.RectangleContainsScreenPoint(GameObject.Find("BuildingUpgrade").GetComponent<RectTransform>(), Input.mousePosition, Camera.main) &&
-                !RectTransformUtility.RectangleContainsScreenPoint(GameObject.Find("Commodities").GetComponent<RectTransform>(), Input.mousePosition, Camera.main) &&
-                !RectTransformUtility.RectangleContainsScreenPoint(GameObject.Find("Costs").GetComponent<RectTransform>(), Input.mousePosition, Camera.main))
-                (GameObject.Find("BuildingOverview").GetComponent("BuildingControl") as BuildingControl).Show(gameObject);
+            if (!EventSystem.current.IsPointerOverGameObject())
+                (GameObject.Find("BuildingOverview").GetComponent("BuildingControl") as BuildingControl).Show(this);
         }
 
         public void HighlightBuilding(bool highlight)
         {
-            (BuildingInstance as GameObject).layer = highlight ? LayerMask.NameToLayer("Outline") : LayerMask.NameToLayer("Default");
+            BuildingInstance.transform.GetChild(0).gameObject.layer = highlight ? LayerMask.NameToLayer("Outline") : LayerMask.NameToLayer("Default");
         }
 
         /// <summary>
@@ -45,7 +40,16 @@ namespace Oeconomica.Game.BuildingsNS
         {
             ActualBuilding = building;
             Destroy(BuildingInstance); //Remove in-game representation of old building
-            BuildingInstance = Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform); //Add new building to the scene
+            BuildingInstance = (GameObject)Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform); //Add new building to the scene
+        }
+
+        /// <summary>
+        /// Sets owner of building
+        /// </summary>
+        /// <param name="player">New owner of building</param>
+        public void SetOwner(Player player)
+        {
+            this.Owner = player;
         }
     }
 }

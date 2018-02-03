@@ -16,15 +16,16 @@ namespace Oeconomica.Game
         public static Player HasTurn { get; private set; } //Player who has turn right now
         public static int actions { get; private set; } //Available actions
         private float timeLimit, time; //Time limit & elapsed time of turn
+        private GameObject[] buildings;
 
         private void Start()
         {
             //Init players
             players = new List<Player>();
-            players.Add(new Player("Hráč 1", "Firma s.r.o.", players.Count));
-            players.Add(new Player("Hráč 2", "Firma a.s.", players.Count));
-            players.Add(new Player("Hráč 3", "Firma v.o.s.", players.Count));
-            players.Add(new Player("Hráč 4", "Firma k.s.", players.Count));
+            players.Add(new Player("Hráč 1", "Firma s.r.o.", players.Count, new Color(1.0f, 0.6f, 0.6f)));
+            players.Add(new Player("Hráč 2", "Firma a.s.", players.Count, new Color(0.6f, 1.0f, 0.6f)));
+            players.Add(new Player("Hráč 3", "Firma v.o.s.", players.Count, new Color(0.6f, 0.6f, 1.0f)));
+            players.Add(new Player("Hráč 4", "Firma k.s.", players.Count, new Color(1.0f, 1.0f, 0.6f)));
 
             //Init player signs
             for (int i = 0; i < 4; i++)
@@ -49,6 +50,18 @@ namespace Oeconomica.Game
                         .Find("Background")
                         .GetComponent<Image>().color = players[i].Color;
                 }
+            }
+
+            //Give buildings to players
+            buildings = GameObject.FindGameObjectsWithTag("Building");
+            foreach(GameObject building in buildings)
+            {
+                building.GetComponent<Building>().SetOwner(
+                        players[
+                            int.Parse(
+                                building.transform.parent.name[
+                                    building.transform.parent.name.Length - 1]
+                                    .ToString())]);
             }
 
             //Set turn timer
@@ -106,12 +119,19 @@ namespace Oeconomica.Game
         /// </summary>
         public void NextTurn()
         {
-            actions = 1;
             if (HasTurn.ID + 1 >= players.Count)
                 NextRound();
             else
                 HasTurn = players[HasTurn.ID + 1];
             ShowPlayerInfo();
+            actions = 1;
+            foreach (GameObject building in buildings)
+            {
+                Building buildingLogic = building.GetComponent<Building>();
+                if (buildingLogic.Owner == HasTurn &&
+                    BuildingsExtensions.GetPCRate(buildingLogic.ActualBuilding).action)
+                    actions++;
+            }
             time = 0;
         }
 
@@ -134,9 +154,9 @@ namespace Oeconomica.Game
             foreach (Player p in players)
             {
                 int profit = 0;
-                foreach (GameObject b in GameObject.FindGameObjectsWithTag("Building"))
+                foreach (GameObject b in buildings)
                 {
-                    if (b.transform.IsChildOf(GameObject.Find("Buildings").transform.Find("Player" + p.ID)))
+                    if (b.GetComponent<Building>().Owner == p)
                     {
                         ProductionConsumptionRate pcrate = BuildingsExtensions.GetPCRate((b.GetComponent<Building>() as Building).ActualBuilding);
 
@@ -144,6 +164,8 @@ namespace Oeconomica.Game
                         profit += (pcrate.p_labour - pcrate.c_labour) * Prices.Labour;
                         profit += (pcrate.p_vehicles - pcrate.c_vehicles) * Prices.Vehicles;
                         profit += (pcrate.p_money - pcrate.c_money);
+                        if (pcrate.charity)
+                            p.Charity = 1;
                     }
                 }
                 p.Money = profit;
@@ -160,6 +182,7 @@ namespace Oeconomica.Game
             Prices.Labour = (int)Mathf.Clamp(total_pcrate.c_labour - total_pcrate.p_labour, -1, 1);
             Prices.Vehicles = (int)Mathf.Clamp(total_pcrate.c_vehicles - total_pcrate.p_vehicles, -1, 1);
             Prices.TrackDevelopment();
+            
         }
 
         /// <summary>

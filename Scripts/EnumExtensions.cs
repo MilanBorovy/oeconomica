@@ -12,13 +12,17 @@ namespace Oeconomica
         /// </summary>
         /// <typeparam name="T">Type of attribute</typeparam>
         /// <param name="value">Enumerator</param>
-        /// <returns></returns>
         public static T GetAttribute<T>(this Enum value)
             where T : Attribute
         {
             var type = value.GetType();
             var name = Enum.GetName(type, value);
             return type.GetField(name).GetCustomAttributes(false).OfType<T>().SingleOrDefault();
+        }
+
+        public static string GetString(this Enum value)
+        {
+            return value.GetAttribute<StringAttribute>().String;
         }
     }
 }

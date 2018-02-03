@@ -42,7 +42,7 @@ namespace Oeconomica
             get { return _color; }
         }
 
-        public Player(string name, string company, int id)
+        public Player(string name, string company, int id, Color color)
         {
             _id = id;
             _name = name;
@@ -50,10 +50,7 @@ namespace Oeconomica
             _money = 6;
             _charity = 0;
             _loan = 0;
-            _color = new Color(
-                Mathf.Clamp(Random.value, 0.5f, 1.0f),
-                Mathf.Clamp(Random.value, 0.5f, 1.0f),
-                Mathf.Clamp(Random.value, 0.5f, 1.0f));
+            _color = color;
         }
     }
 }

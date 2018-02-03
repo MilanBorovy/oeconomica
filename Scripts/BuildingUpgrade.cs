@@ -5,33 +5,66 @@ using UnityEngine;
 using UnityEngine.UI;
 using Oeconomica.Game.BuildingsNS;
 using Oeconomica.Game.BranchesNS;
+using UnityEngine.EventSystems;
 
 namespace Oeconomica.Game.HUD
 {
     public class BuildingUpgrade : MonoBehaviour
     {
-
-        private Budovy buildings = new Budovy();
         bool wait = false;
         private Branches branch;
         private List<Branches> branches;
         private bool upgrade = false;
         private Building buildingLogic;
-        private int selected;
+        private int _selected;
+        public int Selected
+        {
+            get
+            {
+                return _selected;
+            }
+            set
+            {
+                _selected = (int)Mathf.Clamp((float)value, -1, 2);
+                HighlightSelected();
+            }
+        }
+
+        //Is this window visible?
+        private bool _visible;
+        public bool Visible
+        {
+            get
+            {
+                return _visible;
+            }
+            private set
+            {
+                gameObject.transform.localScale = new Vector3(value ? 1 : 0, 1, 1);
+                _visible = value;
+            }
+        }
 
         private List<Buildings> displayedBuildings;
 
-        public void Zobrazit(Building building, bool upgrade)
+        private void Start()
         {
+            Visible = false; //Hide window
+        }
+
+        public void Show(Building building, bool upgrade)
+        {
+            if (Visible) //Close already opened menu before opening "new" one
+                Hide();
+            this.Visible = true;
             this.buildingLogic = building;
             this.upgrade = upgrade;
             this.branch = BuildingsExtensions.GetBranch(building.ActualBuilding);
             this.branches = BranchesExtensions.AllBranches();
             this.branch = branch != Branches.NONE ? branch : branches[0];
-            this.selected = -1;
+            this.Selected = -1;
 
-            //Shows upgrade&downgrade menu
-            gameObject.transform.localScale = new Vector3(1, 1, 1);
+            buildingLogic.HighlightBuilding(true);
 
             //Shows actual building
             GameObject.Find("Actual").GetComponent<Text>().text = string.Format("Aktuálně: {0}", BuildingsExtensions.GetName(building.ActualBuilding));
@@ -42,7 +75,6 @@ namespace Oeconomica.Game.HUD
 
 
             ShowBranch();
-            HighlightSelected();
             wait = true;
         }
 
@@ -128,24 +160,19 @@ namespace Oeconomica.Game.HUD
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (Visible)
             {
-                //Click outside window
-                if (!RectTransformUtility.RectangleContainsScreenPoint(gameObject.GetComponent<RectTransform>(), Input.mousePosition, Camera.main) && !wait)
-                    Hide();
-                //Select building
-                else
-                    for (int i = 0; i < 3; i++)
-                        if (RectTransformUtility.RectangleContainsScreenPoint(gameObject.transform.Find("Selection" + i).GetComponent<RectTransform>(), Input.mousePosition, Camera.main) &&
-                            !wait &&
-                            gameObject.transform.Find("Selection" + i).Find("Name").GetComponent<Text>().text != "")
-                            selected = i;
-
+                if (Input.GetMouseButtonDown(0) && this.Visible)
+                {
+                    //Click outside window
+                    if (!EventSystem.current.IsPointerOverGameObject() && !wait)
+                        Hide();
+                }
                 HighlightSelected();
-            }
-            if (wait)
-            {
-                wait = false;
+                if (wait)
+                {
+                    wait = false;
+                }
             }
         }
 
@@ -154,7 +181,11 @@ namespace Oeconomica.Game.HUD
         /// </summary>
         public void Hide()
         {
-            gameObject.GetComponent<CanvasRenderer>().transform.localScale = new Vector3(0, 0, 0);
+            if (Visible)
+            {
+                buildingLogic.HighlightBuilding(false);
+                this.Visible = false;
+            }
         }
 
         /// <summary>
@@ -166,7 +197,7 @@ namespace Oeconomica.Game.HUD
             branches.Add(branch);
             branch = branches[0];
             ShowBranch();
-            selected = -1; //Unselect
+            Selected = -1; //Unselect
             HighlightSelected();
         }
 
@@ -180,7 +211,7 @@ namespace Oeconomica.Game.HUD
             branches.Insert(0, branch);
             branch = branches[0];
             ShowBranch();
-            selected = -1; //Unselect
+            Selected = -1; //Unselect
             HighlightSelected();
         }
 
@@ -189,10 +220,10 @@ namespace Oeconomica.Game.HUD
             //Change color of selected
             for (int i = 0; i < 3; i++)
             {
-                gameObject.transform.Find("Selection" + i).GetComponent<Image>().color = new Color(0, 0, i == selected ? 0.5f : 0, 0.5f);
+                gameObject.transform.Find("Selection" + i).GetComponent<Image>().color = new Color(0, 0, i == Selected ? 0.5f : 0, 0.5f);
             }
 
-            if (selected != -1 && ((GameLogic.HasTurn.Money >= 4 &&
+            if (Selected != -1 && ((GameLogic.HasTurn.Money >= 4 &&
                 BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) == 0) ||
                 GameLogic.HasTurn.Money >= 1 &&
                 BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) != 0) &&
@@ -229,7 +260,17 @@ namespace Oeconomica.Game.HUD
             GameLogic.ShowPlayerInfo();
 
             //Apply building
-            buildingLogic.ChangeBuilding(displayedBuildings[selected]);
+            buildingLogic.ChangeBuilding(displayedBuildings[Selected]);
+        }
+
+        /// <summary>
+        /// Sets selected building
+        /// Use for UI elements only
+        /// Primarily use int Selected instead!
+        /// </summary>
+        public void Select(int slot)
+        {
+            Selected = slot;
         }
     }
 }

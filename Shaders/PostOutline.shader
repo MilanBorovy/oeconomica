@@ -2,7 +2,7 @@ Shader "Custom/Post Outline"
 {
 	Properties
 	{
-		_MainTex("Main Texture",2D) = "white"{}
+		_MainTex("Main Texture",2D) = "black"{}
 		_Color("Color", Color) = (1, 1, 1) //Color
 	}
 	SubShader
@@ -13,7 +13,7 @@ Shader "Custom/Post Outline"
 		{
 			CGPROGRAM
 
-				fixed4 _Color;
+				float3 _Color;
 				sampler2D _MainTex;
 
 				//Conversion pixel - texel
@@ -79,7 +79,7 @@ Shader "Custom/Post Outline"
 						}
 					}
 					//Output color;
-					return ColorIntensityInRadius*half4(_Color.r,_Color.g,_Color.b,0.1);
+					return ColorIntensityInRadius*float4(_Color.r,_Color.g,_Color.b,0.1);
 				}
 
 			ENDCG

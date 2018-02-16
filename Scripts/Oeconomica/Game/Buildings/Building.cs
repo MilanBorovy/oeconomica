@@ -1,24 +1,37 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
 using Oeconomica.Game.HUD;
 using Oeconomica.Game;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 
 namespace Oeconomica.Game.BuildingsNS
 {
-    public class Building : MonoBehaviour
+    public class Building : NetworkBehaviour
     {
 
-        public Buildings ActualBuilding { get; private set; } //Actual building type
+        [SyncVar(hook = "OnBuildingChanged")]private Buildings _actualBuilding;
+        public Buildings ActualBuilding {
+            get
+            {
+                return _actualBuilding;
+            }
+            private set
+            {
+                _actualBuilding = value;
+            }
+        }//Actual building type
+
         public Player Owner { get; private set; }
         private GameObject BuildingInstance; //In-game representation of building
 
         void Start()
         {
-            ActualBuilding = Buildings.EMPTY;
-            BuildingInstance = (GameObject)Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform);
+            if (isServer)
+                CmdChangeBuilding(Buildings.EMPTY);
+            else
+                OnBuildingChanged(ActualBuilding);
         }
 
         void OnMouseDown()
@@ -36,11 +49,19 @@ namespace Oeconomica.Game.BuildingsNS
         /// Change type of building
         /// </summary>
         /// <param name="building">New building type</param>
-        public void ChangeBuilding(Buildings building)
+        [Command]
+        public void CmdChangeBuilding(Buildings building)
         {
             ActualBuilding = building;
+
+            Debug.Log("Building changed to " + ActualBuilding.GetName());
+        }
+        
+        private void OnBuildingChanged(Buildings value)
+        {
             Destroy(BuildingInstance); //Remove in-game representation of old building
-            BuildingInstance = (GameObject)Instantiate(BuildingsExtensions.GetModel(ActualBuilding), gameObject.transform); //Add new building to the scene
+            BuildingInstance = (GameObject)Instantiate(value.GetModel(), gameObject.transform); //Add new building to the scene
+            ActualBuilding = value;
         }
 
         /// <summary>

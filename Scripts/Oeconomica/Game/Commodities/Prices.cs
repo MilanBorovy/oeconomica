@@ -27,7 +27,11 @@ namespace Oeconomica.Game.CommoditiesNS
         public static int Electricity
         {
             get { return _electricity + 1; }
-            set { _electricity = Clamp(_electricity + value); }
+            set { _electricity = Clamp(_electricity + value); Debug.Log("Price of electricity changed to " + Electricity); }
+        }
+        public static int ElectricityExact
+        {
+            set { _electricity = Clamp(value - 1); Debug.Log("Price of electricity changed to " + value); }
         }
 
         //Price of labour
@@ -35,7 +39,11 @@ namespace Oeconomica.Game.CommoditiesNS
         public static int Labour
         {
             get { return _labour + 2; }
-            set { _labour = Clamp(_labour + value); }
+            set { _labour = Clamp(_labour + value); Debug.Log("Price of labour changed to " + Labour); }
+        }
+        public static int LabourExact
+        {
+            set { _labour = Clamp(value - 2); Debug.Log("Price of labour changed to " + value); }
         }
 
         //Price of vehicles
@@ -43,7 +51,11 @@ namespace Oeconomica.Game.CommoditiesNS
         public static int Vehicles
         {
             get { return _vehicles + 3; }
-            set { _vehicles = Clamp(_vehicles + value); }
+            set { _vehicles = Clamp(_vehicles + value); Debug.Log("Price of vehicles changed to " + Vehicles); }
+        }
+        public static int VehiclesExact
+        {
+            set { _vehicles = Clamp(value - 3); Debug.Log("Price of vehicles changed to " + value); }
         }
 
         //Development of electricity

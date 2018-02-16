@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using UnityEditor;
 using UnityEngine.UI;
 using Oeconomica.Game.CommoditiesNS;
 using UnityEngine.EventSystems;
@@ -18,6 +17,11 @@ namespace Oeconomica.Game.HUD
         {
             set
             {
+                if(value == _commodity && Visible)
+                {
+                    Visible = false;
+                    return;
+                }
                 _commodity = Mathf.Clamp(value, 0, 2);
                 Visible = true;
             }
@@ -36,9 +40,13 @@ namespace Oeconomica.Game.HUD
 
         private bool Visible
         {
+            get
+            {
+                return gameObject.transform.parent.GetComponent<RectTransform>().localScale.x != 0;
+            }
             set
             {
-                gameObject.transform.parent.localScale = new Vector3(value ? 1 : 0, 1, 1);
+                gameObject.transform.parent.GetComponent<RectTransform>().localScale = new Vector3(value ? 1 : 0, 1, 1);
                 Refresh();
             }
         }
@@ -62,6 +70,7 @@ namespace Oeconomica.Game.HUD
         {
             Prices.OnDevelopmentUpdate += new Prices.DevelopmentUpdate(Refresh);
             Commodity = 0;
+            Visible = false;
             DrawGraph();
         }
 
@@ -74,7 +83,8 @@ namespace Oeconomica.Game.HUD
         //Refresh graph after new round
         private void Refresh()
         {
-            DrawGraph();
+            if(Visible)
+                DrawGraph();
         }
 
         /// <summary>

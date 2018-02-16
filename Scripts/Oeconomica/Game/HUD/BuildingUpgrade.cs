@@ -6,10 +6,11 @@ using UnityEngine.UI;
 using Oeconomica.Game.BuildingsNS;
 using Oeconomica.Game.BranchesNS;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 
 namespace Oeconomica.Game.HUD
 {
-    public class BuildingUpgrade : MonoBehaviour
+    public class BuildingUpgrade : NetworkBehaviour
     {
         bool wait = false;
         private Branches branch;
@@ -59,7 +60,7 @@ namespace Oeconomica.Game.HUD
             this.Visible = true;
             this.buildingLogic = building;
             this.upgrade = upgrade;
-            this.branch = BuildingsExtensions.GetBranch(building.ActualBuilding);
+            this.branch = building.ActualBuilding.GetBranch();
             this.branches = BranchesExtensions.AllBranches();
             this.branch = branch != Branches.NONE ? branch : branches[0];
             this.Selected = -1;
@@ -67,11 +68,11 @@ namespace Oeconomica.Game.HUD
             buildingLogic.HighlightBuilding(true);
 
             //Shows actual building
-            GameObject.Find("Actual").GetComponent<Text>().text = string.Format("Aktuálně: {0}", BuildingsExtensions.GetName(building.ActualBuilding));
+            GameObject.Find("Actual").GetComponent<Text>().text = string.Format("Aktuálně: {0}", building.ActualBuilding.GetName());
 
             //Available only while building new building or at 1st level
-            GameObject.Find("NextBranch").GetComponent<Button>().interactable = (upgrade && BuildingsExtensions.GetGrade(building.ActualBuilding) <= 1);
-            GameObject.Find("PreviousBranch").GetComponent<Button>().interactable = (upgrade && BuildingsExtensions.GetGrade(building.ActualBuilding) <= 1);
+            GameObject.Find("NextBranch").GetComponent<Button>().interactable = (upgrade && building.ActualBuilding.GetGrade() <= 1);
+            GameObject.Find("PreviousBranch").GetComponent<Button>().interactable = (upgrade && building.ActualBuilding.GetGrade() <= 1);
 
 
             ShowBranch();
@@ -117,18 +118,20 @@ namespace Oeconomica.Game.HUD
             ClearBranch(); //Clear window from buildings
 
             //Get set of valid buildings
-            foreach (Buildings b in BranchesExtensions.GetBuildings(branch))
+            foreach (Buildings b in branch.GetBuildings())
             {
                 //Upgrade
-                if (upgrade && (BuildingsExtensions.GetGrade(b) == BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) ||
-                    BuildingsExtensions.GetGrade(b) == BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) + 1) &&
+                if (upgrade && (b.GetGrade() == buildingLogic.ActualBuilding.GetGrade() ||
+                    ((b.GetBranch() == buildingLogic.ActualBuilding.GetBranch() ||
+                    buildingLogic.ActualBuilding.GetBranch() == Branches.NONE) &&
+                    b.GetGrade() == buildingLogic.ActualBuilding.GetGrade() + 1)) &&
                     b != buildingLogic.ActualBuilding)
                 {
                     validBuildings.Add(b);
                 }
 
                 //Downgrade
-                else if (!upgrade && BuildingsExtensions.GetGrade(b) == BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) - 1 &&
+                else if (!upgrade && b.GetGrade() == buildingLogic.ActualBuilding.GetGrade() - 1 &&
                     b != buildingLogic.ActualBuilding)
                 {
                     validBuildings.Add(b);
@@ -136,12 +139,12 @@ namespace Oeconomica.Game.HUD
             }
 
             //Display branch name
-            gameObject.transform.Find("Branch").GetComponent<Text>().text = string.Format("Odvětví: {0}", BranchesExtensions.GetName(branch));
+            gameObject.transform.Find("Branch").GetComponent<Text>().text = string.Format("Odvětví: {0}", branch.GetName());
 
             //Display valid buildings
             for (int selectionIdx = 0; selectionIdx < validBuildings.Count; selectionIdx++)
             {
-                gameObject.transform.Find("Selection" + selectionIdx).Find("Name").GetComponent<Text>().text = BuildingsExtensions.GetName(validBuildings[selectionIdx]);
+                gameObject.transform.Find("Selection" + selectionIdx).Find("Name").GetComponent<Text>().text = validBuildings[selectionIdx].GetName();
                 DisplayProductionConsumption(selectionIdx, validBuildings[selectionIdx]);
             }
 
@@ -169,7 +172,7 @@ namespace Oeconomica.Game.HUD
                         Hide();
                 }
                 HighlightSelected();
-                if (wait)
+                if (Input.GetMouseButtonUp(0) && wait)
                 {
                     wait = false;
                 }
@@ -224,13 +227,13 @@ namespace Oeconomica.Game.HUD
             }
 
             if (Selected != -1 && ((GameLogic.HasTurn.Money >= 4 &&
-                BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) == 0) ||
+                buildingLogic.ActualBuilding.GetGrade() == 0) ||
                 GameLogic.HasTurn.Money >= 1 &&
-                BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) != 0) &&
+                buildingLogic.ActualBuilding.GetGrade() != 0) &&
                 GameLogic.actions > 0)
             {
                 gameObject.transform.Find("Confirm").GetComponent<Button>().interactable = true;
-                if (BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) == 0)
+                if (buildingLogic.ActualBuilding.GetGrade() == 0)
                     GameObject.Find("ConfirmTag").GetComponent<Text>().text = string.Format("POTVRDIT ({0},000,000 Kč)", 4);
                 else
                     GameObject.Find("ConfirmTag").GetComponent<Text>().text = string.Format("POTVRDIT ({0},000,000 Kč)", 1);
@@ -251,7 +254,7 @@ namespace Oeconomica.Game.HUD
 
             //Take money&action for building
             GameLogic.Action();
-            if (BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) == 0)
+            if (buildingLogic.ActualBuilding.GetGrade() == 0)
                 GameLogic.HasTurn.Money = -4;
             else
                 GameLogic.HasTurn.Money = -1;
@@ -260,7 +263,7 @@ namespace Oeconomica.Game.HUD
             GameLogic.ShowPlayerInfo();
 
             //Apply building
-            buildingLogic.ChangeBuilding(displayedBuildings[Selected]);
+            buildingLogic.CmdChangeBuilding(displayedBuildings[Selected]);
         }
 
         /// <summary>
@@ -270,7 +273,8 @@ namespace Oeconomica.Game.HUD
         /// </summary>
         public void Select(int slot)
         {
-            Selected = slot;
+            if(slot < displayedBuildings.Count)
+                Selected = slot;
         }
     }
 }

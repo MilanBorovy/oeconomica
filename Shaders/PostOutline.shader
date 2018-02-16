@@ -46,7 +46,7 @@ Shader "Custom/Post Outline"
 				half4 frag(v2f i) : COLOR
 				{
 					//Width of outline
-					int NumberOfIterations = 20;
+					int NumberOfIterations = 9;
 
 					//Split texel size into smaller words
 					float TX_x = _MainTex_TexelSize.x;

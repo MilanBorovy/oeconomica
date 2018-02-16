@@ -23,7 +23,7 @@ namespace Oeconomica.Game.HUD
                 foreach (GameObject building in BuildingsExtensions.All())
                 {
                     Building b = building.GetComponent("Building") as Building;
-                    ProductionConsumptionRate pcrate = BuildingsExtensions.GetPCRate(b.ActualBuilding);
+                    ProductionConsumptionRate pcrate = b.ActualBuilding.GetPCRate();
                     electricity_production += pcrate.p_electricity;
                     electricity_consumption += pcrate.c_electricity;
                     labour_production += pcrate.p_labour;

@@ -6,10 +6,11 @@ using Oeconomica.Game.BuildingsNS;
 using Oeconomica.Game.CommoditiesNS;
 using Oeconomica.Game.Effects;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 
 namespace Oeconomica.Game.HUD
 {
-    public class BuildingControl : MonoBehaviour
+    public class BuildingControl : NetworkBehaviour
     {
         //Wait for released MB for buttons & window
         private bool wait = false;
@@ -29,6 +30,45 @@ namespace Oeconomica.Game.HUD
             {
                 gameObject.transform.localScale = new Vector3(value ? 1 : 0, 1, 1);
                 _visible = value;
+            }
+        }
+
+        private bool _visible_buttons;
+        private bool VisibleButtons
+        {
+            get
+            {
+                return _visible_buttons;
+            }
+            set
+            {
+                Button upgrade = GameObject.Find("Upgrade").GetComponent<Button>();
+                Button downgrade = GameObject.Find("Downgrade").GetComponent<Button>();
+
+                upgrade.transform.localScale = new Vector3(value ? 1 : 0, 1, 1);
+                downgrade.transform.localScale = new Vector3(value ? 1 : 0, 1, 1);
+
+                RectTransform name = gameObject.transform.FindChild("Name").GetComponent<RectTransform>();
+                RectTransform profit = gameObject.transform.FindChild("Profit").GetComponent<RectTransform>();
+                RectTransform production = gameObject.transform.FindChild("Production").GetComponent<RectTransform>();
+                RectTransform consumption = gameObject.transform.FindChild("Consumption").GetComponent<RectTransform>();
+                RectTransform window = gameObject.transform.parent.GetComponent<RectTransform>();
+
+                name.anchorMin = new Vector2(0, value ? 0.9f : 1f - 1f / 6f);
+                name.anchorMax = new Vector2(1, 1);
+
+                profit.anchorMin = new Vector2(0, value ? 0.8f : 1f - 1f / 3f);
+                profit.anchorMax = new Vector2(1, value ? 0.9f : 1f - 1f / 6f);
+
+                production.anchorMin = new Vector2(0, value ? 0.6f : 1f - 2f / 3f);
+                production.anchorMax = new Vector2(1, value ? 0.8f : 1f - 1f / 3f);
+
+                consumption.anchorMin = new Vector2(0, value ? 0.4f : 0.0f);
+                consumption.anchorMax = new Vector2(1, value ? 0.6f : 1f - 2f / 3f);
+
+                window.sizeDelta = new Vector2(5000, value ? 4000 : 2400);
+
+                _visible_buttons = false;
             }
         }
 
@@ -55,7 +95,7 @@ namespace Oeconomica.Game.HUD
             Visible = true; //Show window
 
             gameObject.transform.Find("Name").GetComponent<Text>().text =
-                string.Format("Budova: {0}", BuildingsExtensions.GetName(buildingLogic.ActualBuilding)); //Set name of building
+                string.Format("Budova: {0}", buildingLogic.ActualBuilding.GetName()); //Set name of building
 
             gameObject.transform.Find("Profit").GetComponent<Text>().text =
                 string.Format("V tomto kole: {0},000,000 Kč", ProfitCalculation(buildingLogic)); //Set profit
@@ -76,19 +116,23 @@ namespace Oeconomica.Game.HUD
             Button downgrade = GameObject.Find("Downgrade").GetComponent<Button>();
 
             //Own building filter
-            int display = building.transform.parent.name == "Player" + GameLogic.HasTurn.ID ? 1 : 0;
+            NetworkIdentity identity = building.gameObject.GetComponent<NetworkIdentity>();
+            int display = building.transform.parent.name == "Player" + GameLogic.HasTurn.ID && 
+                (identity.hasAuthority ||
+                (identity.clientAuthorityOwner == null && identity.isServer)) ? 1 : 0;
 
             //Set buttons visibility
-            upgrade.transform.localScale = new Vector3(display, display, display);
-            downgrade.transform.localScale = new Vector3(display, display, display);
+            VisibleButtons = building.transform.parent.name == "Player" + GameLogic.HasTurn.ID &&
+                (identity.hasAuthority ||
+                (identity.clientAuthorityOwner == null && identity.isServer));
 
             //Set buttons interactibility
             upgrade.interactable = display != 0 && GameLogic.actions > 0;
-            downgrade.interactable = display != 0 && BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) != 0 && GameLogic.actions > 0;
+            downgrade.interactable = display != 0 && buildingLogic.ActualBuilding.GetGrade() != 0 && GameLogic.actions > 0;
 
             //Set buttons text
-            GameObject.Find("UpgradeTag").GetComponent<Text>().text = buttonLabels[BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding), 0];
-            GameObject.Find("DowngradeTag").GetComponent<Text>().text = buttonLabels[BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding), 1];
+            GameObject.Find("UpgradeTag").GetComponent<Text>().text = buttonLabels[buildingLogic.ActualBuilding.GetGrade(), 0];
+            GameObject.Find("DowngradeTag").GetComponent<Text>().text = buttonLabels[buildingLogic.ActualBuilding.GetGrade(), 1];
 
             //Display production & consumption rates
             DisplayPC(buildingLogic.ActualBuilding);
@@ -138,7 +182,7 @@ namespace Oeconomica.Game.HUD
                     if (!EventSystem.current.IsPointerOverGameObject() && !wait)
                         Hide();
                 }
-                else if (!Input.GetMouseButtonDown(0) &&
+                else if (Input.GetMouseButtonUp(0) &&
                     wait)
                 {
                     wait = false;
@@ -162,7 +206,7 @@ namespace Oeconomica.Game.HUD
         /// <returns></returns>
         private int ProfitCalculation(Building building)
         {
-            ProductionConsumptionRate pcrate = BuildingsExtensions.GetPCRate(building.ActualBuilding); //Production&consumption rates
+            ProductionConsumptionRate pcrate = building.ActualBuilding.GetPCRate(); //Production&consumption rates
 
             //Incomes
             int incomes = pcrate.p_electricity * Prices.Electricity;
@@ -200,12 +244,12 @@ namespace Oeconomica.Game.HUD
             if (!wait)
             {
                 Hide();
-                if (BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) > 1) //Downgrade building
+                if (buildingLogic.ActualBuilding.GetGrade() > 1) //Downgrade building
                     (GameObject.Find("BuildingUpgrade").GetComponent("BuildingUpgrade") as BuildingUpgrade).Show(buildingLogic, false);
-                else if (BuildingsExtensions.GetGrade(buildingLogic.ActualBuilding) == 1) //Destroy building
+                else if (buildingLogic.ActualBuilding.GetGrade() == 1) //Destroy building
                 {
                     GameLogic.Action();
-                    buildingLogic.ChangeBuilding(Buildings.EMPTY);
+                    buildingLogic.CmdChangeBuilding(Buildings.EMPTY);
                 }
             }
         }

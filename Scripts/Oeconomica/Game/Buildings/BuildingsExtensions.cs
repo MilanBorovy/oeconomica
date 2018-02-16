@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using Oeconomica.Game.CommoditiesNS;
@@ -89,7 +88,7 @@ namespace Oeconomica.Game.BuildingsNS
             GameObject[] consumptionSlots = GameObject.FindGameObjectsWithTag(consumptionCol);
 
             //Get production&consumption rate
-            ProductionConsumptionRate pcrate = BuildingsExtensions.GetPCRate(building);
+            ProductionConsumptionRate pcrate = building.GetPCRate();
             int[,] pcrate_array = new int[4, 2]
             {
             { pcrate.p_electricity, pcrate.c_electricity },
